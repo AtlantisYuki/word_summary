@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>省流总结助手 - 设置</title>
+    <style>
+      :root {
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #f7f8fa;
+        color: #1f2d3d;
+      }
+      .wrapper {
+        max-width: 720px;
+        margin: 24px auto;
+        background: #fff;
+        border: 1px solid #d9dee5;
+        border-radius: 10px;
+        padding: 20px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      .field {
+        margin-bottom: 14px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #c8d1dc;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+      button {
+        border: none;
+        border-radius: 8px;
+        background: #1366d6;
+        color: #fff;
+        padding: 10px 14px;
+        cursor: pointer;
+      }
+      .hint {
+        font-size: 12px;
+        color: #55677a;
+      }
+      .status {
+        margin-left: 10px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <h1>省流总结助手设置</h1>
+      <div class="field">
+        <label for="baseUrl">Base URL</label>
+        <input id="baseUrl" placeholder="例如：https://api.openai.com/v1" />
+      </div>
+      <div class="field">
+        <label for="modelName">模型名称</label>
+        <input id="modelName" placeholder="例如：gpt-4o-mini" />
+      </div>
+      <div class="field">
+        <label for="apiKey">API Key</label>
+        <input id="apiKey" type="password" placeholder="sk-..." />
+      </div>
+      <div class="field">
+        <label for="selectionShortcut">选中文本快捷键</label>
+        <input id="selectionShortcut" placeholder="例如：alt+s" />
+      </div>
+      <div class="field">
+        <label for="pageShortcut">整页总结快捷键</label>
+        <input id="pageShortcut" placeholder="例如：ctrl+alt+s" />
+      </div>
+      <div class="field">
+        <label for="summaryHighlightColor">选中高亮底色</label>
+        <input id="summaryHighlightColor" type="color" value="#fff3a3" />
+      </div>
+      <div class="field">
+        <button id="saveBtn">保存设置</button>
+        <span id="status" class="status"></span>
+      </div>
+      <p class="hint">说明：快捷键格式示例 <code>alt+s</code>、<code>ctrl+alt+s</code>、<code>shift+x</code>。</p>
+      <p class="hint">说明：插件按 OpenAI Chat Completions 接口格式请求 <code>/chat/completions</code>。</p>
+    </div>
+    <script src="options.js"></script>
+  </body>
+</html>
