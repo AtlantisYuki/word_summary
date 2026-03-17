@@ -1,18 +1,34 @@
-const DEFAULT_SETTINGS = {
-  apiKey: "",
+const DEFAULT_PROVIDER = {
+  id: "provider_default",
+  name: "默认供应商",
   baseUrl: "https://api.openai.com/v1",
-  modelName: "gpt-4o-mini",
+  apiKey: "",
+  textModel: "gpt-4o-mini",
+  visionModel: "gpt-4o-mini",
+  timeoutMs: 30000,
+  maxRetries: 1,
+  textPriority: 1,
+  visionPriority: 1,
+  enabled: true
+};
+
+const DEFAULT_SETTINGS = {
+  providers: [DEFAULT_PROVIDER],
+  debugLogEnabled: true,
   selectionShortcut: "alt+s",
   pageShortcut: "ctrl+alt+s",
   summaryHighlightColor: "#fff3a3"
 };
 
-const baseUrlInput = document.getElementById("baseUrl");
-const modelNameInput = document.getElementById("modelName");
-const apiKeyInput = document.getElementById("apiKey");
+const providerListEl = document.getElementById("providerList");
+const addProviderBtn = document.getElementById("addProvider");
 const selectionShortcutInput = document.getElementById("selectionShortcut");
 const pageShortcutInput = document.getElementById("pageShortcut");
 const summaryHighlightColorInput = document.getElementById("summaryHighlightColor");
+const debugLogEnabledInput = document.getElementById("debugLogEnabled");
+const refreshLogsBtn = document.getElementById("refreshLogs");
+const clearLogsBtn = document.getElementById("clearLogs");
+const debugLogBox = document.getElementById("debugLogBox");
 const saveBtn = document.getElementById("saveBtn");
 const statusEl = document.getElementById("status");
 
@@ -23,6 +39,63 @@ const MODIFIER_ALIAS = {
   cmd: "meta",
   option: "alt"
 };
+
+let providerState = [];
+
+function formatDebugLogs(logs) {
+  if (!Array.isArray(logs) || logs.length === 0) {
+    return "";
+  }
+  return logs
+    .map((log) => {
+      const ts = log?.ts || "";
+      const level = log?.level || "info";
+      const event = log?.event || "unknown";
+      let detailText = "";
+      try {
+        detailText = JSON.stringify(log?.detail || {});
+      } catch (_error) {
+        detailText = String(log?.detail || "");
+      }
+      return `[${ts}] [${level}] ${event} ${detailText}`;
+    })
+    .join("\n");
+}
+
+function sendRuntimeMessage(message) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      if (!response?.ok) {
+        reject(new Error(response?.error || "请求失败。"));
+        return;
+      }
+      resolve(response);
+    });
+  });
+}
+
+async function refreshDebugLogs() {
+  try {
+    const response = await sendRuntimeMessage({ type: "GET_DEBUG_LOGS" });
+    const text = formatDebugLogs(response.logs || []);
+    debugLogBox.value = text || "暂无日志";
+  } catch (error) {
+    debugLogBox.value = `读取日志失败：${error.message || String(error)}`;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 function normalizeShortcut(input) {
   const raw = (input || "").toLowerCase().replace(/\s+/g, "");
@@ -58,33 +131,202 @@ function normalizeShortcut(input) {
   return orderedModifiers.length ? `${orderedModifiers.join("+")}+${key}` : key;
 }
 
+function normalizeProvider(provider, index) {
+  const safeId = provider?.id == null ? `provider_${index + 1}` : String(provider.id);
+  const safeName = provider?.name == null ? `供应商${index + 1}` : String(provider.name);
+  const safeBaseUrl = provider?.baseUrl == null ? "" : String(provider.baseUrl);
+  const safeApiKey = provider?.apiKey == null ? "" : String(provider.apiKey);
+  const safeTextModel = provider?.textModel == null ? "" : String(provider.textModel);
+  const safeVisionModel = provider?.visionModel == null ? "" : String(provider.visionModel);
+
+  return {
+    id: safeId.trim(),
+    name: safeName.trim(),
+    baseUrl: safeBaseUrl.trim(),
+    apiKey: safeApiKey.trim(),
+    textModel: safeTextModel.trim(),
+    visionModel: safeVisionModel.trim(),
+    timeoutMs: Number.isFinite(Number(provider?.timeoutMs)) ? Math.floor(Number(provider.timeoutMs)) : 30000,
+    maxRetries: Number.isFinite(Number(provider?.maxRetries)) ? Math.floor(Number(provider.maxRetries)) : 1,
+    textPriority: Number.isFinite(Number(provider?.textPriority)) ? Math.floor(Number(provider.textPriority)) : index + 1,
+    visionPriority: Number.isFinite(Number(provider?.visionPriority)) ? Math.floor(Number(provider.visionPriority)) : index + 1,
+    enabled: provider?.enabled !== false
+  };
+}
+
+function createProviderCard(provider, index) {
+  const card = document.createElement("div");
+  card.className = "provider-item";
+  card.dataset.id = provider.id;
+  card.innerHTML = `
+    <div class="provider-head">
+      <div class="provider-title">供应商 #${index + 1}</div>
+      <button type="button" class="ghost remove-provider">删除</button>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <label>显示名称</label>
+        <input data-key="name" value="${escapeHtml(provider.name)}" placeholder="例如：OpenAI 主通道" />
+      </div>
+      <div class="field">
+        <label>Base URL</label>
+        <input data-key="baseUrl" value="${escapeHtml(provider.baseUrl)}" placeholder="例如：https://api.openai.com" />
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input data-key="apiKey" type="password" value="${escapeHtml(provider.apiKey)}" placeholder="sk-..." />
+      </div>
+      <div class="field">
+        <label>启用状态</label>
+        <input data-key="enabled" type="checkbox" ${provider.enabled ? "checked" : ""} />
+      </div>
+      <div class="field">
+        <label>文字模型（textModel）</label>
+        <input data-key="textModel" value="${escapeHtml(provider.textModel)}" placeholder="例如：gpt-4o-mini" />
+      </div>
+      <div class="field">
+        <label>视觉模型（visionModel）</label>
+        <input data-key="visionModel" value="${escapeHtml(provider.visionModel)}" placeholder="例如：gpt-4o-mini" />
+      </div>
+      <div class="field">
+        <label>反应时长 ms（timeoutMs）</label>
+        <input data-key="timeoutMs" value="${escapeHtml(provider.timeoutMs)}" />
+      </div>
+      <div class="field">
+        <label>失败重试次数（maxRetries）</label>
+        <input data-key="maxRetries" value="${escapeHtml(provider.maxRetries)}" />
+      </div>
+      <div class="field">
+        <label>文字优先级（textPriority）</label>
+        <input data-key="textPriority" value="${escapeHtml(provider.textPriority)}" />
+      </div>
+      <div class="field">
+        <label>视觉优先级（visionPriority）</label>
+        <input data-key="visionPriority" value="${escapeHtml(provider.visionPriority)}" />
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+function renderProviders() {
+  providerListEl.innerHTML = "";
+  providerState.forEach((provider, index) => {
+    const card = createProviderCard(provider, index);
+    const removeBtn = card.querySelector(".remove-provider");
+    removeBtn.addEventListener("click", () => {
+      providerState.splice(index, 1);
+      renderProviders();
+    });
+    providerListEl.appendChild(card);
+  });
+}
+
+function collectProviderCards() {
+  const cards = Array.from(providerListEl.querySelectorAll(".provider-item"));
+  return cards.map((card, index) => {
+    const getValue = (key) => (card.querySelector(`[data-key="${key}"]`)?.value || "").trim();
+    const enabledInput = card.querySelector('[data-key="enabled"]');
+
+    const provider = normalizeProvider(
+      {
+        id: card.dataset.id || `provider_${index + 1}`,
+        name: getValue("name"),
+        baseUrl: getValue("baseUrl"),
+        apiKey: getValue("apiKey"),
+        textModel: getValue("textModel"),
+        visionModel: getValue("visionModel"),
+        timeoutMs: getValue("timeoutMs"),
+        maxRetries: getValue("maxRetries"),
+        textPriority: getValue("textPriority"),
+        visionPriority: getValue("visionPriority"),
+        enabled: Boolean(enabledInput?.checked)
+      },
+      index
+    );
+
+    return provider;
+  });
+}
+
+function validateProviders(providers) {
+  if (!providers.length) {
+    return "至少需要一个供应商。";
+  }
+
+  for (const provider of providers) {
+    if (!provider.name) {
+      return "供应商名称不能为空。";
+    }
+    if (!provider.baseUrl) {
+      return `供应商「${provider.name}」缺少 Base URL。`;
+    }
+    if (!provider.textModel && !provider.visionModel) {
+      return `供应商「${provider.name}」至少要配置一个模型。`;
+    }
+    if (provider.timeoutMs < 1000 || provider.timeoutMs > 120000) {
+      return `供应商「${provider.name}」反应时长建议在 1000-120000 ms。`;
+    }
+    if (provider.maxRetries < 0 || provider.maxRetries > 6) {
+      return `供应商「${provider.name}」失败重试次数建议在 0-6。`;
+    }
+    if (provider.textPriority <= 0 || provider.visionPriority <= 0) {
+      return `供应商「${provider.name}」优先级必须为正整数。`;
+    }
+  }
+
+  const enabledCount = providers.filter((provider) => provider.enabled).length;
+  if (!enabledCount) {
+    return "至少启用一个供应商。";
+  }
+  return "";
+}
+
+function buildLegacyProvider(rawSettings) {
+  return normalizeProvider(
+    {
+      ...DEFAULT_PROVIDER,
+      id: "provider_legacy",
+      name: "兼容默认供应商",
+      baseUrl: rawSettings.baseUrl || DEFAULT_PROVIDER.baseUrl,
+      apiKey: rawSettings.apiKey || "",
+      textModel: rawSettings.modelName || DEFAULT_PROVIDER.textModel,
+      visionModel: rawSettings.modelName || DEFAULT_PROVIDER.visionModel
+    },
+    0
+  );
+}
+
 function loadSettings() {
-  chrome.storage.sync.get(DEFAULT_SETTINGS, (settings) => {
-    baseUrlInput.value = settings.baseUrl || "";
-    modelNameInput.value = settings.modelName || "";
-    apiKeyInput.value = settings.apiKey || "";
-    selectionShortcutInput.value = settings.selectionShortcut || DEFAULT_SETTINGS.selectionShortcut;
-    pageShortcutInput.value = settings.pageShortcut || DEFAULT_SETTINGS.pageShortcut;
-    summaryHighlightColorInput.value = settings.summaryHighlightColor || DEFAULT_SETTINGS.summaryHighlightColor;
+  chrome.storage.sync.get(null, (rawSettings) => {
+    const providers = Array.isArray(rawSettings.providers) && rawSettings.providers.length
+      ? rawSettings.providers.map((provider, index) => normalizeProvider(provider, index))
+      : [buildLegacyProvider(rawSettings || {})];
+
+    providerState = providers;
+    renderProviders();
+
+    selectionShortcutInput.value = rawSettings.selectionShortcut || DEFAULT_SETTINGS.selectionShortcut;
+    pageShortcutInput.value = rawSettings.pageShortcut || DEFAULT_SETTINGS.pageShortcut;
+    summaryHighlightColorInput.value = rawSettings.summaryHighlightColor || DEFAULT_SETTINGS.summaryHighlightColor;
+    debugLogEnabledInput.checked = rawSettings.debugLogEnabled !== false;
+    void refreshDebugLogs();
   });
 }
 
 function saveSettings() {
-  const baseUrl = (baseUrlInput.value || "").trim();
-  const modelName = (modelNameInput.value || "").trim();
-  const apiKey = (apiKeyInput.value || "").trim();
+  const providers = collectProviderCards();
+  const providersError = validateProviders(providers);
+  if (providersError) {
+    statusEl.textContent = providersError;
+    return;
+  }
+
   const selectionShortcut = normalizeShortcut(selectionShortcutInput.value || "");
   const pageShortcut = normalizeShortcut(pageShortcutInput.value || "");
   const summaryHighlightColor = (summaryHighlightColorInput.value || "").trim().toLowerCase();
+  const debugLogEnabled = Boolean(debugLogEnabledInput.checked);
 
-  if (!baseUrl) {
-    statusEl.textContent = "请填写 Base URL。";
-    return;
-  }
-  if (!modelName) {
-    statusEl.textContent = "请填写模型名称。";
-    return;
-  }
   if (!selectionShortcut) {
     statusEl.textContent = "选中文本快捷键格式无效。";
     return;
@@ -102,16 +344,60 @@ function saveSettings() {
     return;
   }
 
-  chrome.storage.sync.set({ baseUrl, modelName, apiKey, selectionShortcut, pageShortcut, summaryHighlightColor }, () => {
-    selectionShortcutInput.value = selectionShortcut;
-    pageShortcutInput.value = pageShortcut;
-    summaryHighlightColorInput.value = summaryHighlightColor;
-    statusEl.textContent = "已保存。";
-    setTimeout(() => {
-      statusEl.textContent = "";
-    }, 1800);
-  });
+  chrome.storage.sync.set(
+    {
+      providers,
+      debugLogEnabled,
+      selectionShortcut,
+      pageShortcut,
+      summaryHighlightColor
+    },
+    () => {
+      selectionShortcutInput.value = selectionShortcut;
+      pageShortcutInput.value = pageShortcut;
+      summaryHighlightColorInput.value = summaryHighlightColor;
+      providerState = providers;
+      renderProviders();
+      statusEl.textContent = "已保存。";
+      void refreshDebugLogs();
+      setTimeout(() => {
+        statusEl.textContent = "";
+      }, 1800);
+    }
+  );
 }
 
+addProviderBtn.addEventListener("click", () => {
+  const nextIndex = providerState.length + 1;
+  providerState.push(
+    normalizeProvider(
+      {
+        ...DEFAULT_PROVIDER,
+        id: `provider_${Date.now()}_${nextIndex}`,
+        name: `供应商${nextIndex}`,
+        textPriority: nextIndex,
+        visionPriority: nextIndex
+      },
+      nextIndex - 1
+    )
+  );
+  renderProviders();
+});
+
 saveBtn.addEventListener("click", saveSettings);
+refreshLogsBtn.addEventListener("click", () => {
+  void refreshDebugLogs();
+});
+clearLogsBtn.addEventListener("click", async () => {
+  try {
+    await sendRuntimeMessage({ type: "CLEAR_DEBUG_LOGS" });
+    debugLogBox.value = "暂无日志";
+    statusEl.textContent = "调试日志已清空。";
+    setTimeout(() => {
+      statusEl.textContent = "";
+    }, 1200);
+  } catch (error) {
+    statusEl.textContent = `清空失败：${error.message || String(error)}`;
+  }
+});
 loadSettings();

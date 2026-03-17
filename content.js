@@ -105,10 +105,13 @@ function ensureUiStyles() {
   style.textContent = [
     ":root{--sl-summary-highlight-color:#fff3a3;}",
     ".__sl-summary-highlight{background:var(--sl-summary-highlight-color);padding:0 .08em;border-radius:3px;}",
+    "img.__sl-summary-image-highlight{outline:3px solid var(--sl-summary-highlight-color);outline-offset:2px;border-radius:6px;}",
     ".__sl-summary-bubble{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;padding:1px 6px;border:1px solid #1366d6;background:#e9f2ff;color:#1366d6;border-radius:12px;font-size:11px;line-height:1.4;cursor:pointer;vertical-align:middle;}",
     "#__sl-selection-card{position:fixed;z-index:2147483647;width:min(340px,calc(100vw - 24px));background:#fff;border:1px solid #cfd6df;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.16);padding:10px;}",
     "#__sl-selection-card .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}",
     "#__sl-selection-card .title{font-size:13px;font-weight:600;color:#1f2d3d;}",
+    "#__sl-selection-card .actions{display:flex;gap:6px;}",
+    "#__sl-selection-card .copy{border:none;background:#e9f2ff;color:#1366d6;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px;}",
     "#__sl-selection-card .close{border:none;background:#1366d6;color:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px;}",
     "#__sl-selection-card .content{white-space:pre-wrap;line-height:1.6;font-size:13px;color:#233245;max-height:45vh;overflow:auto;}",
     "#__sl-page-summary-panel{position:fixed;right:0;top:72px;width:min(380px,88vw);max-height:72vh;background:#fff;border:1px solid #ccd4de;border-right:none;border-radius:10px 0 0 10px;box-shadow:0 8px 26px rgba(0,0,0,.18);z-index:2147483646;display:flex;flex-direction:column;transition:transform .2s ease;}",
@@ -148,6 +151,36 @@ function showTransientMessage(text, level) {
 }
 showTransientMessage.timerId = null;
 
+async function copyText(text) {
+  const content = String(text || "").trim();
+  if (!content) {
+    return false;
+  }
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+      return true;
+    }
+  } catch (_error) {
+  }
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = content;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const ok = document.execCommand("copy");
+    textarea.remove();
+    return ok;
+  } catch (_error) {
+    return false;
+  }
+}
+
 function ensureSelectionCard() {
   ensureUiStyles();
   let card = document.getElementById("__sl-selection-card");
@@ -161,12 +194,20 @@ function ensureSelectionCard() {
   card.innerHTML = [
     "<div class='head'>",
     "<span class='title'>选中摘要</span>",
+    "<div class='actions'>",
+    "<button type='button' class='copy'>复制</button>",
     "<button type='button' class='close'>关闭</button>",
+    "</div>",
     "</div>",
     "<div class='content'></div>"
   ].join("");
   document.documentElement.appendChild(card);
 
+  card.querySelector(".copy").addEventListener("click", async () => {
+    const content = card.querySelector(".content")?.textContent || "";
+    const ok = await copyText(content);
+    showTransientMessage(ok ? "已复制摘要。" : "复制失败，请手动复制。", ok ? "normal" : "error");
+  });
   card.querySelector(".close").addEventListener("click", () => {
     card.style.display = "none";
   });
@@ -174,14 +215,15 @@ function ensureSelectionCard() {
 }
 
 function openSelectionCard(summaryId, anchorEl) {
-  const summary = selectionSummaryStore.get(summaryId);
-  if (!summary) {
+  const payload = selectionSummaryStore.get(summaryId);
+  if (!payload?.summary) {
     showTransientMessage("摘要已失效，请重新生成。", "error");
     return;
   }
 
   const card = ensureSelectionCard();
-  card.querySelector(".content").textContent = summary;
+  card.querySelector(".title").textContent = payload.title || "摘要";
+  card.querySelector(".content").textContent = payload.summary;
   card.style.display = "block";
 
   const rect = anchorEl.getBoundingClientRect();
@@ -398,7 +440,10 @@ function applySelectionSummary(summary, sourceText) {
     const bubble = createSummaryBubble(summaryId);
     highlightNode.insertAdjacentElement("afterend", bubble);
 
-    selectionSummaryStore.set(summaryId, summary);
+    selectionSummaryStore.set(summaryId, {
+      title: "选中摘要",
+      summary
+    });
     const selection = window.getSelection();
     if (selection) {
       selection.removeAllRanges();
@@ -410,6 +455,63 @@ function applySelectionSummary(summary, sourceText) {
   } catch (_error) {
     return { ok: false, error: "选区渲染失败，请重新选择文本。" };
   }
+}
+
+function normalizeUrl(value) {
+  try {
+    return new URL(value, location.href).href;
+  } catch (_error) {
+    return (value || "").trim();
+  }
+}
+
+function findImageElement(imageUrl) {
+  const targetUrl = normalizeUrl(imageUrl);
+  if (!targetUrl) {
+    return null;
+  }
+
+  const images = document.querySelectorAll("img");
+  for (const img of images) {
+    const current = normalizeUrl(img.currentSrc || img.src || "");
+    if (current && current === targetUrl) {
+      return img;
+    }
+  }
+
+  for (const img of images) {
+    const current = normalizeUrl(img.currentSrc || img.src || "");
+    if (current && (current.includes(targetUrl) || targetUrl.includes(current))) {
+      return img;
+    }
+  }
+
+  return null;
+}
+
+function applyImageSummary(summary, imageUrl) {
+  ensureUiStyles();
+  const imageEl = findImageElement(imageUrl);
+  if (!imageEl) {
+    return { ok: false, error: "已生成摘要，但未定位到对应图片。" };
+  }
+
+  const summaryId = `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  imageEl.classList.add("__sl-summary-image-highlight");
+
+  const existingBubble = imageEl.nextElementSibling;
+  if (existingBubble && existingBubble.classList?.contains("__sl-summary-bubble")) {
+    existingBubble.remove();
+  }
+  const bubble = createSummaryBubble(summaryId);
+  imageEl.insertAdjacentElement("afterend", bubble);
+
+  selectionSummaryStore.set(summaryId, {
+    title: "图片摘要",
+    summary
+  });
+  showTransientMessage("已添加图片摘要气泡，点击“省流”查看。", "normal");
+  return { ok: true };
 }
 
 function getPageText() {
@@ -541,6 +643,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message?.type === "APPLY_SELECTION_SUMMARY") {
     const result = applySelectionSummary(message.summary || "", message.sourceText || "");
+    sendResponse(result);
+    return true;
+  }
+
+  if (message?.type === "APPLY_IMAGE_SUMMARY") {
+    const result = applyImageSummary(message.summary || "", message.imageUrl || "");
     sendResponse(result);
     return true;
   }

@@ -10,87 +10,186 @@
       }
       body {
         margin: 0;
-        background: #f7f8fa;
+        background: #f7f9fc;
         color: #1f2d3d;
       }
       .wrapper {
-        max-width: 720px;
+        max-width: 980px;
         margin: 24px auto;
+        padding: 0 16px 24px;
+      }
+      .card {
         background: #fff;
-        border: 1px solid #d9dee5;
-        border-radius: 10px;
-        padding: 20px;
-      }
-      h1 {
-        margin-top: 0;
-      }
-      .field {
+        border: 1px solid #d8dee6;
+        border-radius: 12px;
+        padding: 16px;
         margin-bottom: 14px;
       }
-      label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 6px;
+      h1 {
+        margin: 0 0 10px;
       }
-      input {
+      h2 {
+        margin: 0 0 10px;
+        font-size: 17px;
+      }
+      .sub {
+        margin: 0 0 12px;
+        color: #4f6174;
+        font-size: 13px;
+      }
+      .provider-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .provider-item {
+        border: 1px solid #d6dde7;
+        border-radius: 10px;
+        padding: 12px;
+        background: #fbfdff;
+      }
+      .provider-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .provider-title {
+        font-weight: 700;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        color: #4f6174;
+        margin-bottom: 4px;
+      }
+      .field input {
         width: 100%;
         box-sizing: border-box;
-        border: 1px solid #c8d1dc;
+        border: 1px solid #c5cfdb;
         border-radius: 8px;
-        padding: 10px 12px;
-        font-size: 14px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+      .field input[type="checkbox"] {
+        width: auto;
+        border: none;
+        padding: 0;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
       }
       button {
         border: none;
         border-radius: 8px;
         background: #1366d6;
         color: #fff;
-        padding: 10px 14px;
+        padding: 9px 14px;
         cursor: pointer;
       }
-      .hint {
-        font-size: 12px;
-        color: #55677a;
+      .ghost {
+        background: #e9f2ff;
+        color: #1366d6;
       }
       .status {
         margin-left: 10px;
         font-size: 13px;
       }
+      .small-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px 12px;
+      }
+      .log-box {
+        width: 100%;
+        min-height: 260px;
+        box-sizing: border-box;
+        border: 1px solid #c5cfdb;
+        border-radius: 8px;
+        padding: 10px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        background: #fcfdff;
+        color: #25384b;
+        resize: vertical;
+      }
+      .inline-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      @media (max-width: 840px) {
+        .grid,
+        .small-grid {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="wrapper">
-      <h1>省流总结助手设置</h1>
-      <div class="field">
-        <label for="baseUrl">Base URL</label>
-        <input id="baseUrl" placeholder="例如：https://api.openai.com/v1" />
+      <div class="card">
+        <h1>省流总结助手设置</h1>
+        <p class="sub">支持多供应商按优先级自动切换。优先级数字越小，调用顺序越靠前。</p>
       </div>
-      <div class="field">
-        <label for="modelName">模型名称</label>
-        <input id="modelName" placeholder="例如：gpt-4o-mini" />
+
+      <div class="card">
+        <h2>供应商配置</h2>
+        <div id="providerList" class="provider-list"></div>
+        <div class="actions" style="margin-top: 10px;">
+          <button id="addProvider" type="button" class="ghost">新增供应商</button>
+        </div>
       </div>
-      <div class="field">
-        <label for="apiKey">API Key</label>
-        <input id="apiKey" type="password" placeholder="sk-..." />
+
+      <div class="card">
+        <h2>交互配置</h2>
+        <div class="small-grid">
+          <div class="field">
+            <label for="selectionShortcut">选中文本快捷键</label>
+            <input id="selectionShortcut" placeholder="例如：alt+s" />
+          </div>
+          <div class="field">
+            <label for="pageShortcut">整页总结快捷键</label>
+            <input id="pageShortcut" placeholder="例如：ctrl+alt+s" />
+          </div>
+          <div class="field">
+            <label for="summaryHighlightColor">选中高亮底色</label>
+            <input id="summaryHighlightColor" type="color" value="#fff3a3" />
+          </div>
+          <div class="field">
+            <label>开发调试日志</label>
+            <label class="inline-check">
+              <input id="debugLogEnabled" type="checkbox" />
+              <span>启用调试日志（建议开发阶段开启）</span>
+            </label>
+          </div>
+        </div>
       </div>
-      <div class="field">
-        <label for="selectionShortcut">选中文本快捷键</label>
-        <input id="selectionShortcut" placeholder="例如：alt+s" />
+
+      <div class="card">
+        <h2>调试日志</h2>
+        <p class="sub">用于排查识图失败、供应商切换、超时和重试。仅本地存储最近日志。</p>
+        <div class="actions" style="margin-bottom: 10px;">
+          <button id="refreshLogs" type="button" class="ghost">刷新日志</button>
+          <button id="clearLogs" type="button" class="ghost">清空日志</button>
+        </div>
+        <textarea id="debugLogBox" class="log-box" readonly placeholder="暂无日志"></textarea>
       </div>
-      <div class="field">
-        <label for="pageShortcut">整页总结快捷键</label>
-        <input id="pageShortcut" placeholder="例如：ctrl+alt+s" />
+
+      <div class="card">
+        <div class="actions">
+          <button id="saveBtn" type="button">保存设置</button>
+          <span id="status" class="status"></span>
+        </div>
       </div>
-      <div class="field">
-        <label for="summaryHighlightColor">选中高亮底色</label>
-        <input id="summaryHighlightColor" type="color" value="#fff3a3" />
-      </div>
-      <div class="field">
-        <button id="saveBtn">保存设置</button>
-        <span id="status" class="status"></span>
-      </div>
-      <p class="hint">说明：快捷键格式示例 <code>alt+s</code>、<code>ctrl+alt+s</code>、<code>shift+x</code>。</p>
-      <p class="hint">说明：插件按 OpenAI Chat Completions 接口格式请求 <code>/chat/completions</code>。</p>
     </div>
     <script src="options.js"></script>
   </body>

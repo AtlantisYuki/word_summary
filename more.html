@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>省流总结助手 - 更多</title>
+    <link rel="stylesheet" href="more.css" />
+  </head>
+  <body>
+    <main class="wrapper">
+      <h1>更多总结</h1>
+      <p class="sub">支持输入文字、粘贴图片、上传图片，也可以混合总结。</p>
+
+      <section class="card">
+        <label for="textInput">文字输入</label>
+        <textarea id="textInput" placeholder="输入或粘贴需要总结的内容"></textarea>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <label for="imageInput">图片输入</label>
+          <button id="clearImages" type="button" class="ghost">清空图片</button>
+        </div>
+        <div id="pasteHint" class="hint">可直接 Ctrl+V 粘贴图片，或选择本地文件上传。</div>
+        <input id="imageInput" type="file" accept="image/*" multiple />
+        <div id="imageList" class="image-list"></div>
+      </section>
+
+      <section class="card">
+        <button id="runSummary" type="button">开始总结</button>
+        <p id="status" class="status"></p>
+        <label for="resultBox">总结结果</label>
+        <textarea id="resultBox" readonly placeholder="结果会显示在这里"></textarea>
+      </section>
+    </main>
+
+    <script src="more.js"></script>
+  </body>
+</html>

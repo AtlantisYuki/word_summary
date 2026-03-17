@@ -9,25 +9,21 @@ body {
 }
 
 .container {
-  width: 360px;
+  width: 260px;
   padding: 14px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 h1 {
-  margin: 0 0 12px;
+  margin: 0 0 4px;
   font-size: 18px;
   color: #1f2d3d;
 }
 
-.actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
 button {
-  flex: 1;
   border: none;
   border-radius: 8px;
   padding: 10px 8px;
@@ -35,45 +31,4 @@ button {
   background: #1366d6;
   color: #fff;
   font-size: 13px;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.status {
-  min-height: 18px;
-  margin: 0 0 8px;
-  color: #3a4a5a;
-  font-size: 12px;
-}
-
-.result {
-  width: 100%;
-  height: 190px;
-  border: 1px solid #d3d8de;
-  border-radius: 8px;
-  background: #fff;
-  color: #1f2d3d;
-  resize: none;
-  padding: 10px;
-  box-sizing: border-box;
-  line-height: 1.5;
-  font-size: 13px;
-}
-
-.footer {
-  margin-top: 8px;
-  text-align: right;
-}
-
-.footer a {
-  color: #1366d6;
-  text-decoration: none;
-  font-size: 12px;
-}
-
-.footer a:hover {
-  text-decoration: underline;
 }
