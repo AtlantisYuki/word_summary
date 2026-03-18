@@ -20,7 +20,19 @@ const DEFAULT_SETTINGS = {
   debugLogEnabled: true,
   selectionShortcut: "alt+s",
   pageShortcut: "ctrl+alt+s",
-  summaryHighlightColor: "#fff3a3"
+  summaryHighlightColor: "#fff3a3",
+  selectionPendingBgColor: "#fff3a3",
+  selectionPendingBorderColor: "#f59e0b",
+  selectionPendingBorderWidth: 1,
+  selectionPendingBorderStyle: "solid",
+  selectionLoadingText: "总结中",
+  enableSelectionSummary: true,
+  enableImageSummary: true,
+  enablePageSummary: true,
+  selectionPreferredProviderId: "",
+  imagePreferredProviderId: "",
+  pagePreferredProviderId: "",
+  preferredProviderId: ""
 };
 
 const MENU_IDS = {
@@ -491,12 +503,38 @@ function normalizeProviders(rawSettings) {
   return [buildLegacyProvider(rawSettings)];
 }
 
-function pickProvidersByMode(providers, mode) {
+function pickProvidersByMode(providers, mode, preferredProviderId = "") {
   const modeKey = mode === MODE_VISION ? "visionModel" : "textModel";
   const priorityKey = mode === MODE_VISION ? "visionPriority" : "textPriority";
-  return providers
+  const sorted = providers
     .filter((provider) => provider.enabled && provider.baseUrl && provider[modeKey])
     .sort((a, b) => a[priorityKey] - b[priorityKey]);
+
+  const preferredId = String(preferredProviderId || "").trim();
+  if (!preferredId) {
+    return sorted;
+  }
+
+  const preferredIndex = sorted.findIndex((provider) => provider.id === preferredId);
+  if (preferredIndex <= 0) {
+    return sorted;
+  }
+  const [preferred] = sorted.splice(preferredIndex, 1);
+  return [preferred, ...sorted];
+}
+
+function resolvePreferredProviderId(settings, scene, mode) {
+  const legacy = String(settings?.preferredProviderId || "").trim();
+  if (mode === MODE_VISION) {
+    return String(settings?.imagePreferredProviderId || legacy || "").trim();
+  }
+  if (scene === "selection") {
+    return String(settings?.selectionPreferredProviderId || legacy || "").trim();
+  }
+  if (scene === "page") {
+    return String(settings?.pagePreferredProviderId || legacy || "").trim();
+  }
+  return String(settings?.pagePreferredProviderId || legacy || "").trim();
 }
 
 function buildTextPrompt(mode, rawText) {
@@ -780,9 +818,10 @@ async function callProviderOnce(provider, mode, messages, trace = {}) {
   throw buildProviderError("接口返回成功但未包含可用摘要内容。", response.status);
 }
 
-async function callProviderWithFallback(mode, messages) {
-  const settings = await getSettings();
-  const candidates = pickProvidersByMode(settings.providers, mode);
+async function callProviderWithFallback(mode, messages, options = {}) {
+  const settings = options.settings || await getSettings();
+  const preferredId = String(options.preferredProviderId || settings.preferredProviderId || "").trim();
+  const candidates = pickProvidersByMode(settings.providers, mode, preferredId);
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const visionDataUrlMap = mode === MODE_VISION ? await prepareVisionDataUrlMap(messages, traceId) : new Map();
 
@@ -869,49 +908,88 @@ async function callProviderWithFallback(mode, messages) {
   throw new Error(`所有供应商调用失败：${errors.slice(0, 6).join("；")}`);
 }
 
-async function summarizeWithProvider({ text, mode }) {
+async function summarizeWithProvider({ text, mode, settings }) {
   const prompt = buildTextPrompt(mode, text);
+  const resolvedSettings = settings || await getSettings();
+  const preferredId = resolvePreferredProviderId(resolvedSettings, mode, MODE_TEXT);
   return callProviderWithFallback(MODE_TEXT, [
     {
       role: "user",
       content: prompt
     }
-  ]);
+  ], {
+    settings: resolvedSettings,
+    preferredProviderId: preferredId
+  });
 }
 
-async function summarizeImageWithProvider(imageUrl) {
+async function summarizeImageWithProvider(imageUrl, settings) {
   if (!imageUrl) {
     throw new Error("未检测到图片地址。");
   }
+  const resolvedSettings = settings || await getSettings();
+  const preferredId = resolvePreferredProviderId(resolvedSettings, "image", MODE_VISION);
   return callProviderWithFallback(MODE_VISION, [
     {
       role: "user",
       content: buildImageSummaryUserContent(imageUrl)
     }
-  ]);
+  ], {
+    settings: resolvedSettings,
+    preferredProviderId: preferredId
+  });
 }
 
-async function summarizeCustomWithProvider(input) {
+async function summarizeCustomWithProvider(input, settings) {
   const request = buildCustomSummaryRequest(input);
-  return callProviderWithFallback(request.mode, request.messages);
+  const resolvedSettings = settings || await getSettings();
+  const scene = request.mode === MODE_VISION ? "image" : "page";
+  const preferredId = resolvePreferredProviderId(resolvedSettings, scene, request.mode);
+  return callProviderWithFallback(request.mode, request.messages, {
+    settings: resolvedSettings,
+    preferredProviderId: preferredId
+  });
 }
 
-function setupContextMenus() {
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: MENU_IDS.selection,
-      title: "省流助手：总结选中文本",
-      contexts: ["selection"]
-    });
-    chrome.contextMenus.create({
-      id: MENU_IDS.page,
-      title: "省流助手：总结当前网页",
-      contexts: ["page"]
-    });
-    chrome.contextMenus.create({
-      id: MENU_IDS.image,
-      title: "省流助手：识图总结",
-      contexts: ["image"]
+function isMenuFeatureEnabled(settings, menuId) {
+  if (menuId === MENU_IDS.selection) {
+    return settings.enableSelectionSummary !== false;
+  }
+  if (menuId === MENU_IDS.page) {
+    return settings.enablePageSummary !== false;
+  }
+  if (menuId === MENU_IDS.image) {
+    return settings.enableImageSummary !== false;
+  }
+  return true;
+}
+
+async function setupContextMenus() {
+  const settings = await getSettings();
+  return new Promise((resolve) => {
+    chrome.contextMenus.removeAll(() => {
+      if (isMenuFeatureEnabled(settings, MENU_IDS.selection)) {
+        chrome.contextMenus.create({
+          id: MENU_IDS.selection,
+          title: "省流助手：总结选中文本",
+          contexts: ["selection"]
+        });
+      }
+      if (isMenuFeatureEnabled(settings, MENU_IDS.page)) {
+        chrome.contextMenus.create({
+          id: MENU_IDS.page,
+          title: "省流助手：总结当前网页",
+          contexts: ["page"]
+        });
+      }
+      if (isMenuFeatureEnabled(settings, MENU_IDS.image)) {
+        chrome.contextMenus.create({
+          id: MENU_IDS.image,
+          title: "省流助手：识图总结",
+          contexts: ["image"]
+        });
+      }
+      resolve();
     });
   });
 }
@@ -1023,6 +1101,22 @@ async function notifyImageSummary(tabId, summary, imageUrl) {
   }
 }
 
+async function notifyImageSummaryLoading(tabId, imageUrl) {
+  const response = await sendMessageToTab(tabId, {
+    type: "SHOW_IMAGE_SUMMARY_LOADING",
+    imageUrl
+  });
+  if (response?.ok === false) {
+    throw new Error(response.error || "页面渲染图片加载状态失败。");
+  }
+}
+
+async function clearImageSummaryLoading(tabId) {
+  await sendMessageToTab(tabId, {
+    type: "CLEAR_IMAGE_SUMMARY_LOADING"
+  });
+}
+
 async function notifyPageSummary(tabId, payload) {
   await sendMessageToTab(tabId, {
     type: "SHOW_PAGE_SUMMARY_PANEL",
@@ -1039,12 +1133,12 @@ async function notifyTransientMessage(tabId, text, level) {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  setupContextMenus();
+  void setupContextMenus().catch(() => {});
   void appendDebugLog("info", "extension_installed_or_updated", {}, true);
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  setupContextMenus();
+  void setupContextMenus().catch(() => {});
   void appendDebugLog("info", "extension_startup", {}, true);
 });
 
@@ -1061,6 +1155,13 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       true
     );
   }
+  if (
+    changes.enableSelectionSummary ||
+    changes.enablePageSummary ||
+    changes.enableImageSummary
+  ) {
+    void setupContextMenus().catch(() => {});
+  }
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -1069,10 +1170,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       mode: message.mode || "",
       textLength: typeof message.text === "string" ? message.text.length : 0
     });
-    summarizeWithProvider({
-      text: message.text,
-      mode: message.mode
-    })
+    getSettings()
+      .then((settings) => summarizeWithProvider({
+        text: message.text,
+        mode: message.mode,
+        settings
+      }))
       .then((summary) => {
         void appendDebugLog("info", "message_summarize_text_success", {
           mode: message.mode || "",
@@ -1095,7 +1198,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       textLength: typeof message?.input?.text === "string" ? message.input.text.length : 0,
       imageCount: Array.isArray(message?.input?.images) ? message.input.images.length : 0
     });
-    summarizeCustomWithProvider(message.input)
+    getSettings()
+      .then((settings) => summarizeCustomWithProvider(message.input, settings))
       .then((summary) => {
         void appendDebugLog("info", "message_summarize_custom_success", {
           summaryLength: summary.length
@@ -1143,21 +1247,28 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   const tabId = tab.id;
   const run = async () => {
+    const settings = await getSettings();
     if (info.menuItemId === MENU_IDS.selection) {
+      if (!isMenuFeatureEnabled(settings, MENU_IDS.selection)) {
+        return;
+      }
       await appendDebugLog("info", "menu_selection_clicked", {
         tabId
       });
-      const inputText = (info.selectionText || "").trim() || (await getSelectionTextFromTab(tabId));
-      if (!inputText) {
-        await notifyTransientMessage(tabId, "未检测到选中文本，请先选中后再试。", "error");
-        return;
+      const response = await sendMessageToTab(tabId, {
+        type: "START_SELECTION_SUMMARY",
+        triggerType: "context_menu"
+      });
+      if (response?.ok === false) {
+        await notifyTransientMessage(tabId, response.error || "未找到选区，任务已终止。", "error");
       }
-      const summary = await summarizeWithProvider({ text: inputText, mode: "selection" });
-      await notifySelectionSummary(tabId, summary, inputText);
       return;
     }
 
     if (info.menuItemId === MENU_IDS.page) {
+      if (!isMenuFeatureEnabled(settings, MENU_IDS.page)) {
+        return;
+      }
       await appendDebugLog("info", "menu_page_clicked", {
         tabId
       });
@@ -1166,12 +1277,15 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       if (!pageText) {
         throw new Error("未提取到网页正文。");
       }
-      const summary = await summarizeWithProvider({ text: pageText, mode: "page" });
+      const summary = await summarizeWithProvider({ text: pageText, mode: "page", settings });
       await notifyPageSummary(tabId, { state: "done", summary });
       return;
     }
 
     if (info.menuItemId === MENU_IDS.image) {
+      if (!isMenuFeatureEnabled(settings, MENU_IDS.image)) {
+        return;
+      }
       const imageUrl = (info.srcUrl || "").trim();
       await appendDebugLog("info", "menu_image_clicked", {
         tabId,
@@ -1180,8 +1294,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       if (!imageUrl) {
         throw new Error("未检测到图片地址。");
       }
-      await notifyTransientMessage(tabId, "正在识图总结，请稍候...", "normal");
-      const summary = await summarizeImageWithProvider(imageUrl);
+      await notifyImageSummaryLoading(tabId, imageUrl);
+      const summary = await summarizeImageWithProvider(imageUrl, settings);
       await notifyImageSummary(tabId, summary, imageUrl);
     }
   };
@@ -1196,6 +1310,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     try {
       if (info.menuItemId === MENU_IDS.page) {
         await notifyPageSummary(tabId, { state: "error", error: message });
+      } else if (info.menuItemId === MENU_IDS.image) {
+        await clearImageSummaryLoading(tabId);
+        await notifyTransientMessage(tabId, `总结失败：${message}`, "error");
       } else {
         await notifyTransientMessage(tabId, `总结失败：${message}`, "error");
       }

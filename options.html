@@ -4,37 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>省流总结助手 - 设置</title>
+    <link rel="stylesheet" href="shared-sidebar.css" />
     <style>
       :root {
         font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
       }
       body {
         margin: 0;
-        background: #f7f9fc;
-        color: #1f2d3d;
+        background:
+          radial-gradient(260px 160px at 6% 0%, #d9ebff 0%, transparent 75%),
+          radial-gradient(260px 160px at 94% 4%, #e8f2ff 0%, transparent 78%),
+          linear-gradient(180deg, #f4f8ff 0%, #eef3fb 100%);
+        color: #173149;
       }
       .wrapper {
-        max-width: 980px;
-        margin: 24px auto;
-        padding: 0 16px 24px;
+        max-width: 1060px;
+        margin: 22px auto;
+        padding: 0 16px 28px;
       }
       .card {
-        background: #fff;
-        border: 1px solid #d8dee6;
-        border-radius: 12px;
+        background: #ffffffde;
+        border: 1px solid #d5e0ec;
+        border-radius: 14px;
         padding: 16px;
         margin-bottom: 14px;
+        box-shadow: 0 10px 26px rgba(26, 66, 112, 0.08);
+        backdrop-filter: blur(2px);
       }
       h1 {
         margin: 0 0 10px;
+        font-size: 26px;
+        letter-spacing: 0.3px;
       }
       h2 {
         margin: 0 0 10px;
-        font-size: 17px;
+        font-size: 18px;
+        color: #183651;
       }
       .sub {
         margin: 0 0 12px;
-        color: #4f6174;
+        color: #4a6077;
         font-size: 13px;
       }
       .provider-list {
@@ -43,10 +56,10 @@
         gap: 10px;
       }
       .provider-item {
-        border: 1px solid #d6dde7;
-        border-radius: 10px;
+        border: 1px solid #d4dfec;
+        border-radius: 12px;
         padding: 12px;
-        background: #fbfdff;
+        background: #f8fbff;
       }
       .provider-head {
         display: flex;
@@ -56,6 +69,7 @@
       }
       .provider-title {
         font-weight: 700;
+        color: #1f3b56;
       }
       .grid {
         display: grid;
@@ -65,16 +79,17 @@
       .field label {
         display: block;
         font-size: 12px;
-        color: #4f6174;
+        color: #4e637a;
         margin-bottom: 4px;
       }
       .field input {
         width: 100%;
-        box-sizing: border-box;
-        border: 1px solid #c5cfdb;
+        border: 1px solid #c4d1df;
         border-radius: 8px;
         padding: 8px 10px;
         font-size: 13px;
+        color: #213c56;
+        background: #fff;
       }
       .field input[type="checkbox"] {
         width: auto;
@@ -88,19 +103,23 @@
       }
       button {
         border: none;
-        border-radius: 8px;
-        background: #1366d6;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #0f6bd8 0%, #4a96f0 100%);
         color: #fff;
         padding: 9px 14px;
         cursor: pointer;
+        font-weight: 600;
+        box-shadow: 0 8px 16px rgba(15, 107, 216, 0.22);
       }
       .ghost {
-        background: #e9f2ff;
-        color: #1366d6;
+        background: #e8f1fe;
+        color: #0f67cf;
+        box-shadow: none;
       }
       .status {
         margin-left: 10px;
         font-size: 13px;
+        color: #24435f;
       }
       .small-grid {
         display: grid;
@@ -110,15 +129,14 @@
       .log-box {
         width: 100%;
         min-height: 260px;
-        box-sizing: border-box;
-        border: 1px solid #c5cfdb;
-        border-radius: 8px;
+        border: 1px solid #c5d2df;
+        border-radius: 10px;
         padding: 10px;
         font-family: Consolas, "Courier New", monospace;
         font-size: 12px;
         line-height: 1.5;
-        background: #fcfdff;
-        color: #25384b;
+        background: #fcfeff;
+        color: #253a4f;
         resize: vertical;
       }
       .inline-check {
@@ -135,7 +153,19 @@
     </style>
   </head>
   <body>
-    <div class="wrapper">
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <div class="brand">省流助手</div>
+        </div>
+        <nav class="sidebar-nav">
+          <a data-nav="options" href="options.html">选项</a>
+          <a data-nav="more" href="more.html">更多</a>
+          <a data-nav="about" href="about.html">关于</a>
+        </nav>
+      </aside>
+      <div class="shell-main">
+        <div class="wrapper">
       <div class="card">
         <h1>省流总结助手设置</h1>
         <p class="sub">支持多供应商按优先级自动切换。优先级数字越小，调用顺序越靠前。</p>
@@ -165,6 +195,26 @@
             <input id="summaryHighlightColor" type="color" value="#fff3a3" />
           </div>
           <div class="field">
+            <label for="selectionPendingBgColor">任务前选区背景色</label>
+            <input id="selectionPendingBgColor" type="color" value="#fff3a3" />
+          </div>
+          <div class="field">
+            <label for="selectionPendingBorderColor">任务前选区框线颜色</label>
+            <input id="selectionPendingBorderColor" type="color" value="#f59e0b" />
+          </div>
+          <div class="field">
+            <label for="selectionPendingBorderWidth">任务前选区框线宽度(px)</label>
+            <input id="selectionPendingBorderWidth" type="number" min="0" max="6" value="1" />
+          </div>
+          <div class="field">
+            <label for="selectionPendingBorderStyle">任务前选区框线样式</label>
+            <input id="selectionPendingBorderStyle" placeholder="solid/dashed/dotted/double" value="solid" />
+          </div>
+          <div class="field">
+            <label for="selectionLoadingText">总结加载文案（选区/图片/全文）</label>
+            <input id="selectionLoadingText" placeholder="例如：总结中" value="总结中" />
+          </div>
+          <div class="field">
             <label>开发调试日志</label>
             <label class="inline-check">
               <input id="debugLogEnabled" type="checkbox" />
@@ -190,7 +240,11 @@
           <span id="status" class="status"></span>
         </div>
       </div>
+        </div>
+      </div>
     </div>
+    <script src="shared-sidebar.js"></script>
+    <script>window.initSidebar("options");</script>
     <script src="options.js"></script>
   </body>
 </html>

@@ -17,7 +17,19 @@ const DEFAULT_SETTINGS = {
   debugLogEnabled: true,
   selectionShortcut: "alt+s",
   pageShortcut: "ctrl+alt+s",
-  summaryHighlightColor: "#fff3a3"
+  summaryHighlightColor: "#fff3a3",
+  selectionPendingBgColor: "#fff3a3",
+  selectionPendingBorderColor: "#f59e0b",
+  selectionPendingBorderWidth: 1,
+  selectionPendingBorderStyle: "solid",
+  selectionLoadingText: "总结中",
+  enableSelectionSummary: true,
+  enableImageSummary: true,
+  enablePageSummary: true,
+  selectionPreferredProviderId: "",
+  imagePreferredProviderId: "",
+  pagePreferredProviderId: "",
+  preferredProviderId: ""
 };
 
 const providerListEl = document.getElementById("providerList");
@@ -25,6 +37,11 @@ const addProviderBtn = document.getElementById("addProvider");
 const selectionShortcutInput = document.getElementById("selectionShortcut");
 const pageShortcutInput = document.getElementById("pageShortcut");
 const summaryHighlightColorInput = document.getElementById("summaryHighlightColor");
+const selectionPendingBgColorInput = document.getElementById("selectionPendingBgColor");
+const selectionPendingBorderColorInput = document.getElementById("selectionPendingBorderColor");
+const selectionPendingBorderWidthInput = document.getElementById("selectionPendingBorderWidth");
+const selectionPendingBorderStyleInput = document.getElementById("selectionPendingBorderStyle");
+const selectionLoadingTextInput = document.getElementById("selectionLoadingText");
 const debugLogEnabledInput = document.getElementById("debugLogEnabled");
 const refreshLogsBtn = document.getElementById("refreshLogs");
 const clearLogsBtn = document.getElementById("clearLogs");
@@ -309,6 +326,13 @@ function loadSettings() {
     selectionShortcutInput.value = rawSettings.selectionShortcut || DEFAULT_SETTINGS.selectionShortcut;
     pageShortcutInput.value = rawSettings.pageShortcut || DEFAULT_SETTINGS.pageShortcut;
     summaryHighlightColorInput.value = rawSettings.summaryHighlightColor || DEFAULT_SETTINGS.summaryHighlightColor;
+    selectionPendingBgColorInput.value = rawSettings.selectionPendingBgColor || DEFAULT_SETTINGS.selectionPendingBgColor;
+    selectionPendingBorderColorInput.value = rawSettings.selectionPendingBorderColor || DEFAULT_SETTINGS.selectionPendingBorderColor;
+    selectionPendingBorderWidthInput.value = Number.isFinite(Number(rawSettings.selectionPendingBorderWidth))
+      ? Math.floor(Number(rawSettings.selectionPendingBorderWidth))
+      : DEFAULT_SETTINGS.selectionPendingBorderWidth;
+    selectionPendingBorderStyleInput.value = rawSettings.selectionPendingBorderStyle || DEFAULT_SETTINGS.selectionPendingBorderStyle;
+    selectionLoadingTextInput.value = rawSettings.selectionLoadingText || DEFAULT_SETTINGS.selectionLoadingText;
     debugLogEnabledInput.checked = rawSettings.debugLogEnabled !== false;
     void refreshDebugLogs();
   });
@@ -325,6 +349,11 @@ function saveSettings() {
   const selectionShortcut = normalizeShortcut(selectionShortcutInput.value || "");
   const pageShortcut = normalizeShortcut(pageShortcutInput.value || "");
   const summaryHighlightColor = (summaryHighlightColorInput.value || "").trim().toLowerCase();
+  const selectionPendingBgColor = (selectionPendingBgColorInput.value || "").trim().toLowerCase();
+  const selectionPendingBorderColor = (selectionPendingBorderColorInput.value || "").trim().toLowerCase();
+  const selectionPendingBorderWidth = Math.floor(Number(selectionPendingBorderWidthInput.value || "1"));
+  const selectionPendingBorderStyle = (selectionPendingBorderStyleInput.value || "").trim().toLowerCase();
+  const selectionLoadingText = (selectionLoadingTextInput.value || "").trim();
   const debugLogEnabled = Boolean(debugLogEnabledInput.checked);
 
   if (!selectionShortcut) {
@@ -343,6 +372,26 @@ function saveSettings() {
     statusEl.textContent = "高亮颜色格式无效。";
     return;
   }
+  if (!/^#[0-9a-f]{6}$/i.test(selectionPendingBgColor)) {
+    statusEl.textContent = "任务前背景色格式无效。";
+    return;
+  }
+  if (!/^#[0-9a-f]{6}$/i.test(selectionPendingBorderColor)) {
+    statusEl.textContent = "任务前框线颜色格式无效。";
+    return;
+  }
+  if (!Number.isFinite(selectionPendingBorderWidth) || selectionPendingBorderWidth < 0 || selectionPendingBorderWidth > 6) {
+    statusEl.textContent = "任务前框线宽度需在 0-6。";
+    return;
+  }
+  if (!["solid", "dashed", "dotted", "double"].includes(selectionPendingBorderStyle)) {
+    statusEl.textContent = "任务前框线样式仅支持 solid/dashed/dotted/double。";
+    return;
+  }
+  if (!selectionLoadingText) {
+    statusEl.textContent = "请输入总结加载文案。";
+    return;
+  }
 
   chrome.storage.sync.set(
     {
@@ -350,12 +399,22 @@ function saveSettings() {
       debugLogEnabled,
       selectionShortcut,
       pageShortcut,
-      summaryHighlightColor
+      summaryHighlightColor,
+      selectionPendingBgColor,
+      selectionPendingBorderColor,
+      selectionPendingBorderWidth,
+      selectionPendingBorderStyle,
+      selectionLoadingText
     },
     () => {
       selectionShortcutInput.value = selectionShortcut;
       pageShortcutInput.value = pageShortcut;
       summaryHighlightColorInput.value = summaryHighlightColor;
+      selectionPendingBgColorInput.value = selectionPendingBgColor;
+      selectionPendingBorderColorInput.value = selectionPendingBorderColor;
+      selectionPendingBorderWidthInput.value = String(selectionPendingBorderWidth);
+      selectionPendingBorderStyleInput.value = selectionPendingBorderStyle;
+      selectionLoadingTextInput.value = selectionLoadingText;
       providerState = providers;
       renderProviders();
       statusEl.textContent = "已保存。";

@@ -8,9 +8,53 @@
   </head>
   <body>
     <main class="container">
-      <h1>省流总结助手</h1>
-      <button id="open-options">设置</button>
-      <button id="open-more">更多</button>
+      <section class="modes">
+        <article class="mode-card" id="mode-selection">
+          <label class="switch-row" for="toggle-selection">
+            <span>选区总结</span>
+            <input id="toggle-selection" type="checkbox" />
+          </label>
+          <div class="provider-wrap" id="provider-wrap-selection">
+            <label class="provider-label" for="provider-selection">供应商</label>
+            <select id="provider-selection">
+              <option value="">自动（按优先级）</option>
+            </select>
+          </div>
+        </article>
+
+        <article class="mode-card" id="mode-image">
+          <label class="switch-row" for="toggle-image">
+            <span>图片总结</span>
+            <input id="toggle-image" type="checkbox" />
+          </label>
+          <div class="provider-wrap" id="provider-wrap-image">
+            <label class="provider-label" for="provider-image">供应商</label>
+            <select id="provider-image">
+              <option value="">自动（按优先级）</option>
+            </select>
+          </div>
+        </article>
+
+        <article class="mode-card" id="mode-page">
+          <label class="switch-row" for="toggle-page">
+            <span>全文总结</span>
+            <input id="toggle-page" type="checkbox" />
+          </label>
+          <div class="provider-wrap" id="provider-wrap-page">
+            <label class="provider-label" for="provider-page">供应商</label>
+            <select id="provider-page">
+              <option value="">自动（按优先级）</option>
+            </select>
+          </div>
+        </article>
+      </section>
+
+      <p id="status" class="status"></p>
+      <footer class="bottom-bar">
+        <button id="open-options" class="mini-btn" type="button" title="选项">选项</button>
+        <h1 id="version-text">v-</h1>
+        <button id="open-more" class="mini-btn" type="button" title="更多">更多</button>
+      </footer>
     </main>
     <script src="popup.js"></script>
   </body>

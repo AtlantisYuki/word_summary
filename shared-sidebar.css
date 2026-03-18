@@ -1,0 +1,67 @@
+:root {
+  --sl-sidebar-width: 220px;
+}
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--sl-sidebar-width);
+  background: #f7fbff;
+  color: #2a435d;
+  border-right: 1px solid #d4e0ed;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset -1px 0 0 #eef4fb;
+}
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.brand {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #23415f;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-nav a {
+  text-decoration: none;
+  color: #33506d;
+  border: 1px solid #e2ebf5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+  background: #ffffff;
+}
+
+.sidebar-nav a:hover {
+  background: #f2f8ff;
+  border-color: #d3e2f2;
+}
+
+.sidebar-nav a.active {
+  background: #e8f2ff;
+  border-color: #b9d2ef;
+  color: #1d4f8b;
+}
+
+.shell-main {
+  flex: 1;
+  min-width: 0;
+}

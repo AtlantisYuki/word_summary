@@ -3,32 +3,122 @@
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  background: #f4f6f8;
+  background:
+    radial-gradient(120px 90px at 16% 10%, #d9ebff 0%, transparent 72%),
+    radial-gradient(150px 110px at 88% 2%, #e9f3ff 0%, transparent 78%),
+    linear-gradient(180deg, #f4f8ff 0%, #eef3fb 100%);
 }
 
 .container {
-  width: 260px;
+  width: 312px;
   padding: 14px;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-h1 {
-  margin: 0 0 4px;
-  font-size: 18px;
-  color: #1f2d3d;
+.bottom-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  margin-top: 2px;
+  border-top: 1px solid #d4e0ed;
 }
 
-button {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 8px;
-  cursor: pointer;
-  background: #1366d6;
-  color: #fff;
+h1 {
+  margin: 0;
   font-size: 13px;
+  color: #173149;
+  letter-spacing: 0.2px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.mini-btn {
+  border: 1px solid #c6d4e2;
+  background: #ffffff;
+  color: #244460;
+  border-radius: 999px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  justify-self: start;
+}
+
+.bottom-bar .mini-btn:last-child {
+  justify-self: end;
+}
+
+.modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mode-card {
+  background: #fff;
+  border: 1px solid #d5e0ec;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 6px 18px rgba(30, 70, 120, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f3750;
+}
+
+.switch-row input[type="checkbox"] {
+  width: 36px;
+  height: 18px;
+  accent-color: #0f6bd8;
+  cursor: pointer;
+}
+
+.provider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.provider-wrap.is-disabled {
+  display: none;
+}
+
+.provider-label {
+  font-size: 12px;
+  color: #60758d;
+}
+
+select {
+  width: 100%;
+  border: 1px solid #c6d2df;
+  border-radius: 9px;
+  padding: 8px 9px;
+  font-size: 13px;
+  color: #20384f;
+  background: #fff;
+}
+
+.status {
+  min-height: 16px;
+  margin: 0;
+  font-size: 12px;
+  color: #3b536c;
 }

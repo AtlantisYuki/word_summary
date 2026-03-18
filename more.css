@@ -1,52 +1,65 @@
 :root {
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: linear-gradient(180deg, #edf4ff 0%, #f7f9fc 100%);
-  color: #1f2d3d;
+  background:
+    radial-gradient(280px 180px at 8% 0%, #d7eaff 0%, transparent 76%),
+    radial-gradient(260px 160px at 92% 6%, #e9f4ff 0%, transparent 76%),
+    linear-gradient(180deg, #f3f8ff 0%, #edf3fb 100%);
+  color: #173149;
 }
 
 .wrapper {
-  max-width: 860px;
-  margin: 24px auto;
-  padding: 0 16px 28px;
+  max-width: 920px;
+  margin: 22px auto;
+  padding: 0 16px 30px;
 }
 
 h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 30px;
+  letter-spacing: 0.3px;
 }
 
 .sub {
   margin: 8px 0 18px;
-  color: #4b5d70;
+  color: #4b6178;
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #d4dce6;
-  border-radius: 12px;
+  background: #ffffffde;
+  border: 1px solid #d6e1ed;
+  border-radius: 14px;
   padding: 14px;
   margin-bottom: 14px;
+  box-shadow: 0 10px 24px rgba(28, 68, 114, 0.08);
 }
 
 label {
   display: block;
   font-weight: 600;
   margin-bottom: 8px;
+  color: #1c3955;
 }
 
 textarea {
   width: 100%;
   min-height: 140px;
-  box-sizing: border-box;
-  border: 1px solid #c7d0db;
+  border: 1px solid #c5d2df;
   border-radius: 10px;
   padding: 10px;
   line-height: 1.6;
   resize: vertical;
+  font-size: 13px;
+  color: #20384f;
+  background: #fff;
 }
 
 #resultBox {
@@ -66,11 +79,13 @@ input[type="file"] {
 
 button {
   border: none;
-  border-radius: 8px;
-  background: #1366d6;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0f6cd9 0%, #4d98f2 100%);
   color: #fff;
   padding: 9px 14px;
   cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 8px 16px rgba(15, 108, 217, 0.22);
 }
 
 button:disabled {
@@ -79,8 +94,9 @@ button:disabled {
 }
 
 .ghost {
-  background: #e9f2ff;
-  color: #1366d6;
+  background: #e8f1fe;
+  color: #0f67cf;
+  box-shadow: none;
 }
 
 .hint {
@@ -103,25 +119,26 @@ button:disabled {
 }
 
 .image-item {
-  border: 1px solid #d4dce6;
-  border-radius: 8px;
+  border: 1px solid #d3deeb;
+  border-radius: 10px;
   padding: 6px;
-  background: #f9fbff;
+  background: #f8fbff;
 }
 
 .image-item img {
   width: 100%;
   height: 84px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 7px;
   display: block;
 }
 
 .image-item button {
   margin-top: 6px;
   width: 100%;
-  background: #e9f2ff;
-  color: #1366d6;
+  background: #e8f1fe;
+  color: #0f67cf;
   padding: 6px 8px;
   font-size: 12px;
+  box-shadow: none;
 }
